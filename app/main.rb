@@ -6,6 +6,12 @@ FPS = 60
 ENEMIES = 1
 
 def tick(args)
+  args.state.game_state ||= 'playing'
+
+  send("#{args.state.game_state}_tick", args)
+end
+
+def playing_tick(args)
   args.outputs.solids << {
     x: 0,
     y: 0,
@@ -13,51 +19,60 @@ def tick(args)
     h: args.grid.h,
     r: 92,
     g: 120,
-    b: 230,
+    b: 230
   }
 
   args.state.player ||= spawn_player(args)
   args.state.enemies ||= []
-  args.state.game_state ||= 'playing'
 
   args.state.player.move
   spawn_enemies(args)
 
   Combat.call(args) unless args.state.player.dead
 
-  #if args.state.game_state != 'pause'
-    if args.state.player.life.negative?
-      args.state.player.dead = true 
-      args.state.game_state = 'pause'
-    end
+  if args.state.player.life.negative?
+    args.state.player.dead = true 
+    args.state.game_state = 'pause'
+  end
 
-    if args.state.player.life.negative? &&
-      args.state.player.death_animation_end_at == Kernel.tick_count + 50
+  if args.state.player.life.negative? &&
+    args.state.player.death_animation_end_at == Kernel.tick_count + 50
 
-      args.state.game_state.player_corpse = true
-    end
+    args.state.game_state.player_corpse = true
+  end
 
-    args.outputs.debug << "LIFE #{args.state.player.life}"
-    args.outputs.debug << "Tick #{Kernel.tick_count}"
+  args.outputs.debug << "LIFE #{args.state.player.life}"
+  args.outputs.debug << "Tick #{Kernel.tick_count}"
 
-    args.state.enemies.reject!(&:dead)
+  args.state.enemies.reject!(&:dead)
 
-    args.outputs.debug << "PLAYER DATA #{args.state.player.data}"
-    args.outputs.sprites << [
-      args.state.player.data,
-      args.state.enemies.map(&:data)
-    ]
+  args.outputs.debug << "PLAYER DATA #{args.state.player.data}"
+  args.outputs.sprites << [
+    args.state.player.data,
+    args.state.enemies.map(&:data)
+  ]
 
-    if args.state.default_state_at == Kernel.tick_count
-      args.state.game_state = 'playing'
-      args.state.default_state_at = nil
-    end
+  if args.state.default_state_at == Kernel.tick_count
+    args.state.player.state = 'idle'
+    args.state.default_state_at = nil
+  end
 
-    args.state.enemies.map(&:move)
-  #end
+  args.state.enemies.map(&:move)
 end
 
-def playing_tick(args)
+def pause_tick(args)
+  labels = {
+    x: 260,
+    y: args.grid.h - 90,
+    text: "GAME OVER",
+    size_enum: 3
+  }
+
+  args.outputs.labels << labels
+
+  if args.inputs.keyboard.key_down.h || args.inputs.controller_one.key_down.a
+    $gtk.reset
+  end
 end
 
 def spawn_player(args)

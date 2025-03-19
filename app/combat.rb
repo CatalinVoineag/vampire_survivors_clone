@@ -11,7 +11,7 @@ class Combat
 
   def call
     args.state.enemies.each do |enemy|
-      if args.state.game_state == 'attacking' && args.geometry.intersect_rect?(args.state.player.data, enemy.data)
+      if args.state.player.state == 'attacking' && args.geometry.intersect_rect?(args.state.player.data, enemy.data)
         enemy.dead = true
       end
 
