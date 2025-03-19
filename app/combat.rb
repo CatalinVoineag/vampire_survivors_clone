@@ -15,14 +15,27 @@ class Combat
         enemy.dead = true
       end
 
-      if Kernel.tick_count % 60 == 0 &&
-        args.geometry.intersect_rect?(args.state.player.data, enemy.data)
+      if enemy_intersect_player?(enemy) && !enemy.attacking
+        enemy.attacking = true
+        enemy.default_state_at = Kernel.tick_count + enemy.animation_frames
+      end
 
+      if enemy_intersect_player?(enemy) && enemy.attacking && finish_attack_animation?(enemy)
         args.state.player.life -= 10
-        if args.state.player.life < 0
-          args.state.player.dead = true
-        end
+        enemy.attacking = false
       end
     end
+  end
+
+  private
+
+  def enemy_intersect_player?(enemy)
+    tolerance = 32
+    #puts "DATA #{args.state.player.data}"
+    args.geometry.intersect_rect?(args.state.player.data, enemy.data, tolerance)
+  end
+
+  def finish_attack_animation?(enemy)
+    enemy.default_state_at == Kernel.tick_count
   end
 end

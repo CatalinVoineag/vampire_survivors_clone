@@ -1,6 +1,7 @@
 class Player
   attr_reader :args
-  attr_accessor :y, :x, :w, :h, :speed, :path, :dead, :life, :direction, :started_running_at
+  attr_accessor :y, :x, :w, :h, :speed, :path, :dead, :life, :direction,
+    :started_running_at, :death_animation_end_at
 
   def initialize(args, params: {})
     @args = args
@@ -11,9 +12,12 @@ class Player
     @speed = params[:speed]
     @path = params[:path]
     @dead = false
-    @life = 100
+    @life = 10
     @direction = 1
     @started_running_at = nil
+    @sprite_attack_animation_count = 4
+    @sprite_attack_hold = 3
+    @death_animation_end_at = nil
   end
 
   def move
@@ -24,15 +28,26 @@ class Player
 
   def data
     if args.state.game_state == 'playing' && args.state.player.started_running_at && !attack_key?
-      running_sprite(args)
+      running_sprite
     elsif attack_key? || args.state.game_state == 'attacking'
       args.state.game_state = 'attacking'
-      args.state.default_state_at ||= Kernel.tick_count + 7
+      args.state.default_state_at ||= Kernel.tick_count + animation_frames
 
-      attack_sprite(args)
+      attack_sprite
     elsif args.state.game_state == 'playing'
-        standing_sprite(args)
+      standing_sprite
+    elsif args.state.game_state == 'pause' && args.state.player.dead && !args.state.player_corpse
+      death_animation_end_at = Kernel.tick_count + 50
+      death_sprite
+    elsif args.state.game_state == 'pause' && args.state.player.dead && args.state.player_corpse
+      single_death_sprite
     end
+
+    # clean this up!!!
+  end
+
+  def animation_frames
+    @sprite_attack_animation_count * @sprite_attack_hold
   end
 
   private
@@ -67,23 +82,18 @@ class Player
         @started_running_at ||= Kernel.tick_count
       end
 
-      if !args.inputs.keyboard.directional_vector
-        @started_running_at = nil
-      end
+      @started_running_at = nil unless args.inputs.keyboard.directional_vector
     end
   end
 
-  def running_sprite(args)
+  def running_sprite
     if !@started_running_at
       tile_index = 0
     else
-      how_many_frames_in_sprite_sheet = 10
-      how_many_ticks_to_hold_each_frame = 3
-      should_the_index_repeat = true
       tile_index = @started_running_at.frame_index(
-        how_many_frames_in_sprite_sheet,
-        how_many_ticks_to_hold_each_frame,
-        should_the_index_repeat
+        count: 10,
+        hold_for: 3,
+        repeat: true
       )
     end
 
@@ -97,18 +107,15 @@ class Player
       tile_y: 0,
       tile_w: @w,
       tile_h: @h,
-      flip_horizontally: @direction < 0
+      flip_horizontally: @direction.negative?
     }
   end
 
-  def attack_sprite(args)
-    how_many_frames_in_sprite_sheet = 4
-    how_many_ticks_to_hold_each_frame = 3
-    should_the_index_repeat = true
+  def attack_sprite
     tile_index = 0.frame_index(
-      how_many_frames_in_sprite_sheet,
-      how_many_ticks_to_hold_each_frame,
-      should_the_index_repeat
+      count: @sprite_attack_animation_count,
+      hold_for: @sprite_attack_hold,
+      repeat: true
     )
 
     {
@@ -121,18 +128,15 @@ class Player
       tile_y: 0,
       tile_w: @w,
       tile_h: @h,
-      flip_horizontally: @direction < 0
+      flip_horizontally: @direction.negative?
     }
   end
 
-  def standing_sprite(args)
-    how_many_frames_in_sprite_sheet = 10
-    how_many_ticks_to_hold_each_frame = 7
-    should_the_index_repeat = true
+  def standing_sprite
     tile_index = 0.frame_index(
-      how_many_frames_in_sprite_sheet,
-      how_many_ticks_to_hold_each_frame,
-      should_the_index_repeat,
+      count: 10,
+      hold_for: 7,
+      repeat: true
     )
 
     {
@@ -145,7 +149,38 @@ class Player
       tile_y: 0,
       tile_w: @w,
       tile_h: @h,
-      flip_horizontally: @direction < 0
+      flip_horizontally: @direction.negative?
+    }
+  end
+
+  def death_sprite
+    tile_index = 0.frame_index(
+      count: 10,
+      hold_for: 5,
+      repeat: true
+    )
+
+    {
+      x: @x,
+      y: @y,
+      w: @w,
+      h: @h,
+      path: 'sprites/player/_DeathNoMovement.png',
+      tile_x: 0 + (tile_index * @w),
+      tile_y: 0,
+      tile_w: @w,
+      tile_h: @h,
+      flip_horizontally: @direction.negative?
+    }
+  end
+
+  def single_death_sprite
+    {
+      x: @x,
+      y: @y,
+      w: @w,
+      h: @h,
+      path: 'sprites/player/_DeathNoMovementSingle.png'
     }
   end
 end
