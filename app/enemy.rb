@@ -21,7 +21,7 @@ class Enemy
   end
 
   def move
-    handle_movement
+    #handle_movement
   end
 
   def data

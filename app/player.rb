@@ -9,10 +9,10 @@ class Player
     @x = params[:x]
     @w = params[:w]
     @h = params[:h]
-    @speed = params[:speed]
+    @speed = params[:speed] / 2
     @path = params[:path]
     @dead = false
-    @life = 10
+    @life = 100
     @direction = 1
     @started_running_at = nil
     @sprite_attack_animation_count = 4
@@ -53,26 +53,50 @@ class Player
   def handle_movement
     if @state == 'idle'
       if args.inputs.left
+        if hit_left_side?
+          @started_running_at ||= Kernel.tick_count
+          return
+        end
+
         @x -= speed
+        args.state.map.x += (speed * args.state.camera.scale)
         @direction = -1
         @started_running_at ||= Kernel.tick_count
       end
 
       if args.inputs.right
+        if hit_right_side?
+          @started_running_at ||= Kernel.tick_count
+          return
+        end
+
         @x += speed
+        args.state.map.x -= (speed * args.state.camera.scale)
         @direction = 1
         @started_running_at ||= Kernel.tick_count
       end
 
       if args.inputs.up
+        if hit_up?
+          @started_running_at ||= Kernel.tick_count
+          return
+        end
+
         travel_speed = args.inputs.right || args.inputs.left ? speed / 2 : speed
         @y += travel_speed
+        args.state.map.y -= (speed * args.state.camera.scale)
         @started_running_at ||= Kernel.tick_count
       end
 
       if args.inputs.down
+        if hit_down?
+          @started_running_at ||= Kernel.tick_count
+          return
+        end
+
         travel_speed = args.inputs.right || args.inputs.left ? speed / 2 : speed
         @y -= travel_speed
+        args.state.map.y += (speed * args.state.camera.scale)
         @started_running_at ||= Kernel.tick_count
       end
 
@@ -145,5 +169,22 @@ class Player
       tile_h: @h,
       flip_horizontally: @direction.negative?
     }
+  end
+
+  def hit_right_side?
+    # the magic window camera moves the map as well as the player, like a moving staircase 
+    @x + (@w/2) + args.state.map.x.abs > args.state.map.w
+  end
+
+  def hit_left_side?
+    @x + (@w/2) - args.state.map.x.abs < 0
+  end
+
+  def hit_up?
+    @y + (@h/2) + args.state.map.y.abs > args.state.map.h
+  end
+
+  def hit_down?
+    @y - args.state.map.y.abs < 0
   end
 end

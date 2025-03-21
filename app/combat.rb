@@ -16,13 +16,18 @@ class Combat
       end
 
       if enemy_intersect_player?(enemy) && !enemy.attacking
+        args.outputs.debug << 'ATTACK'
         enemy.attacking = true
         enemy.default_state_at = Kernel.tick_count + enemy.animation_frames
       end
 
       if enemy_intersect_player?(enemy) && enemy.attacking && finish_attack_animation?(enemy)
         args.state.player.life -= 10
+      end
+
+      if finish_attack_animation?(enemy)
         enemy.attacking = false
+        enemy.default_state_at = nil
       end
     end
   end

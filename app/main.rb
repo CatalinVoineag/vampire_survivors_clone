@@ -4,26 +4,53 @@ require 'app/combat'
 
 FPS = 60
 ENEMIES = 1
+STARTING_PLAYER_X = (1280 / 2) - (120 / 2)
+STARTING_PLAYER_Y = (720 / 2) - (80 / 2)
 
 def tick(args)
   args.state.game_state ||= 'playing'
 
+  args.state.map.x ||= 0
+  args.state.map.y ||= 0
+  args.state.map.w ||= args.grid.w
+  args.state.map.h ||= args.grid.h
+  args.state.camera.scale ||= 1.00
+
   send("#{args.state.game_state}_tick", args)
 end
 
+def draw_map(args)
+  {
+    x: args.state.map.x,
+    y: args.state.map.y,
+    w: args.state.map.w,
+    h: args.state.map.h,
+    r: 3,
+    g: 69,
+    b: 0
+  }
+end
+
 def playing_tick(args)
+  args.state.player ||= spawn_player(args)
+  args.state.enemies ||= []
+
   args.outputs.solids << {
     x: 0,
     y: 0,
-    w: args.grid.w,
-    h: args.grid.h,
-    r: 92,
-    g: 120,
-    b: 230
+    w: 1920,
+    h: 1080,
+    r: 0,
+    g: 0,
+    b: 0
   }
 
-  args.state.player ||= spawn_player(args)
-  args.state.enemies ||= []
+  args.outputs.solids << draw_map(args)
+  args.outputs.debug << "PLAYR #{args.state.player.data}"
+  args.outputs.debug << "MAP #{args.state.map}"
+  args.outputs.debug << "GRID #{args.grid.w}"
+
+  args.outputs.debug << ("CORNER #{(1920 - args.state.map.w) /2}")
 
   args.state.player.move
   spawn_enemies(args)
@@ -31,7 +58,7 @@ def playing_tick(args)
   Combat.call(args) unless args.state.player.dead
 
   if args.state.player.life.negative?
-    args.state.player.dead = true 
+    args.state.player.dead = true
     args.state.game_state = 'pause'
   end
 
@@ -41,12 +68,10 @@ def playing_tick(args)
     args.state.game_state.player_corpse = true
   end
 
-  args.outputs.debug << "LIFE #{args.state.player.life}"
-  args.outputs.debug << "Tick #{Kernel.tick_count}"
-
   args.state.enemies.reject!(&:dead)
 
   args.outputs.debug << "PLAYER DATA #{args.state.player.data}"
+  args.outputs.debug << "ENEMY DATA #{args.state.enemies.first.data}"
   args.outputs.sprites << [
     args.state.player.data,
     args.state.enemies.map(&:data)
@@ -64,7 +89,7 @@ def pause_tick(args)
   labels = {
     x: 260,
     y: args.grid.h - 90,
-    text: "GAME OVER",
+    text: 'GAME OVER',
     size_enum: 3
   }
 
@@ -79,11 +104,11 @@ def spawn_player(args)
   Player.new(
     args,
     params: {
-      x: 100,
-      y: 280,
+      x: STARTING_PLAYER_X,
+      y: STARTING_PLAYER_Y,
       w: 120,
       h: 80,
-      speed: 3,
+      speed: 3
     }
   )
 end
@@ -104,7 +129,7 @@ def spawn_enemy(args)
       x: rand(args.grid.w * 0.9),
       y: rand(args.grid.h * 0.9),
       w: 100,
-      h: 100,
+      h: 100
     }
   )
 end
