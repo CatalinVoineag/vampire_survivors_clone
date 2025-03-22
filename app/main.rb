@@ -31,6 +31,34 @@ def draw_map(args)
   }
 end
 
+def tiles(args)
+  tile_size = 40
+  x_tiles = (args.grid.w / tile_size).to_i
+  y_tiles = (args.grid.h / tile_size).to_i
+  results = []
+
+  x_tiles.times do |x_item|
+    y_tiles.times do |y_item|
+      x_value = (x_item * tile_size) + args.state.map.x
+      y_value = (y_item * tile_size) + args.state.map.y
+
+      results << {
+        x: x_value,
+        y: y_value,
+        w: tile_size,
+        h: tile_size,
+        path: 'sprites/Pasto[1].png',
+        tile_x: 0,
+        tile_y: 0,
+        tile_w: tile_size,
+        tile_h: tile_size
+      }
+    end
+  end
+
+  results
+end
+
 def playing_tick(args)
   args.state.player ||= spawn_player(args)
   args.state.enemies ||= []
@@ -73,6 +101,7 @@ def playing_tick(args)
   args.outputs.debug << "PLAYER DATA #{args.state.player.data}"
   args.outputs.debug << "ENEMY DATA #{args.state.enemies.first.data}"
   args.outputs.sprites << [
+    tiles(args),
     args.state.player.data,
     args.state.enemies.map(&:data)
   ]
