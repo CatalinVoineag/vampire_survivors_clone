@@ -12,13 +12,21 @@ class Player
     @speed = params[:speed] / 2
     @path = params[:path]
     @dead = false
-    @life = 100
+    @life = 1000000
     @direction = 1
     @started_running_at = nil
     @sprite_attack_animation_count = 4
     @sprite_attack_hold = 3
     @death_animation_end_at = nil
     @state = 'idle'
+  end
+
+  def real_x
+    x - args.state.map.x
+  end
+
+  def real_y
+    y - args.state.map.y
   end
 
   def move
@@ -42,6 +50,28 @@ class Player
 
   def animation_frames
     @sprite_attack_animation_count * @sprite_attack_hold
+  end
+
+  def hitbox_data
+    # make the width smaller and move the character in the middle of the new width
+    {
+      x: x + 20,
+      y: y,
+      w: w - 40,
+      h: h
+    }
+  end
+
+  def middle
+    {
+      x: x + (w / 2),
+      y: y + (h / 2),
+      w: 1,
+      h: 1,
+      r: 39,
+      g: 183,
+      b: 227
+    }
   end
 
   private

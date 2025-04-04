@@ -42,7 +42,7 @@ def tiles(args)
       x_value = (x_item * tile_size) + args.state.map.x
       y_value = (y_item * tile_size) + args.state.map.y
 
-      results << {
+      tile = {
         x: x_value,
         y: y_value,
         w: tile_size,
@@ -53,6 +53,15 @@ def tiles(args)
         tile_w: tile_size,
         tile_h: tile_size
       }
+
+
+      if args.geometry.intersect_rect?(args.state.player.hitbox_data, tile)
+        tile.merge!(r: 255, g: 0, b: 0)
+        #tile.merge!(player:)
+      end
+      tile.merge!(distance_from_player: args.geometry.distance(args.state.player.middle, tile))
+
+      results << tile
     end
   end
 
@@ -76,14 +85,9 @@ def playing_tick(args)
   args.outputs.solids << draw_map(args)
   args.outputs.debug << "PLAYR #{args.state.player.data}"
   args.outputs.debug << "MAP #{args.state.map}"
-  args.outputs.debug << "GRID #{args.grid.w}"
-
-  args.outputs.debug << ("CORNER #{(1920 - args.state.map.w) /2}")
 
   args.state.player.move
   spawn_enemies(args)
-
-  Combat.call(args) unless args.state.player.dead
 
   if args.state.player.life.negative?
     args.state.player.dead = true
@@ -92,26 +96,36 @@ def playing_tick(args)
 
   if args.state.player.life.negative? &&
     args.state.player.death_animation_end_at == Kernel.tick_count + 50
-
     args.state.game_state.player_corpse = true
   end
 
   args.state.enemies.reject!(&:dead)
+  args.state.box = box(args)
 
-  args.outputs.debug << "PLAYER DATA #{args.state.player.data}"
-  args.outputs.debug << "ENEMY DATA #{args.state.enemies.first.data}"
   args.outputs.sprites << [
     tiles(args),
     args.state.player.data,
-    args.state.enemies.map(&:data)
+    args.state.enemies.map(&:data),
+    health_bar(args),
+    box(args),
+    args.state.middle,
+    args.state.enemy_tile,
+    args.state.next_tile,
   ]
+
+  args.outputs.borders << player_box(args)
+  args.outputs.borders << enemy_boxes(args)
+
+  Combat.call(args) unless args.state.player.dead
 
   if args.state.default_state_at == Kernel.tick_count
     args.state.player.state = 'idle'
     args.state.default_state_at = nil
   end
 
-  args.state.enemies.map(&:move)
+  args.state.enemies.map do |enemy|
+    enemy.move(tiles(args))
+  end
 end
 
 def pause_tick(args)
@@ -136,7 +150,7 @@ def spawn_player(args)
       x: STARTING_PLAYER_X,
       y: STARTING_PLAYER_Y,
       w: 120,
-      h: 80,
+      h: 38,
       speed: 3
     }
   )
@@ -155,10 +169,63 @@ def spawn_enemy(args)
   Enemy.new(
     args,
     params: {
-      x: rand(args.grid.w * 0.9),
-      y: rand(args.grid.h * 0.9),
-      w: 100,
-      h: 100
+    #  x: rand(args.grid.w * 0.9),
+    #  y: rand(args.grid.h * 0.9),
+      x: 300,
+      y: 300,
+      w: 120,
+      h: 38
     }
   )
+end
+
+def health_bar(args)
+  center_x = (args.grid.w / 2) - (args.state.player.life / 2)
+  {
+    x: center_x,
+    y: 50,
+    w: args.state.player.life,
+    h: 20,
+    r: 255,
+    g: 0,
+    b: 0
+  }
+end
+
+def box(args)
+  {
+    x: 530 + args.state.map.x,
+    y: 320 + args.state.map.y,
+    w: 50,
+    h: 50,
+    r: 255,
+    g: 0,
+    b: 0
+  }
+end
+
+def player_box(args)
+  {
+    x: args.state.player.hitbox_data[:x],
+    y: args.state.player.hitbox_data[:y],
+    w: args.state.player.hitbox_data[:w],
+    h: args.state.player.hitbox_data[:h],
+    r: 255,
+    g: 0,
+    b: 0
+  }
+end
+
+def enemy_boxes(args)
+  args.state.enemies.map do |enemy|
+    {
+      x: enemy.hitbox_data[:x],
+      y: enemy.hitbox_data[:y],
+      w: enemy.hitbox_data[:w],
+      h: enemy.hitbox_data[:h],
+      r: 255,
+      g: 0,
+      b: 0
+    }
+  end
 end

@@ -11,7 +11,7 @@ class Combat
 
   def call
     args.state.enemies.each do |enemy|
-      if args.state.player.state == 'attacking' && args.geometry.intersect_rect?(args.state.player.data, enemy.data)
+      if args.state.player.state == 'attacking' && args.geometry.intersect_rect?(args.state.player.hitbox_data, enemy.data)
         enemy.dead = true
       end
 
@@ -35,9 +35,8 @@ class Combat
   private
 
   def enemy_intersect_player?(enemy)
-    tolerance = 32
     #puts "DATA #{args.state.player.data}"
-    args.geometry.intersect_rect?(args.state.player.data, enemy.data, tolerance)
+    args.geometry.intersect_rect?(args.state.player.hitbox_data, enemy.hitbox_data)
   end
 
   def finish_attack_animation?(enemy)
